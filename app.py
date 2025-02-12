@@ -132,27 +132,65 @@ if uploaded_file:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+
+
             # Interprétation du résultat
             if result is None:
                 st.error("🚨 Erreur pendant la lecture ou la transcription.")
             elif "moderation_labels" in result:
-                st.error("🚨 Contenu potentiellement inapproprié ! Sujets détectés :")
-                st.write(", ".join(result["moderation_labels"]))
+                st.markdown(
+                    """
+                    <div style="background-color: #FFDDDD; padding: 10px; border-radius: 8px; border-left: 5px solid red;">
+                        <h4 style="color: red; margin-bottom: 5px;">🚨 Contenu inapproprié détecté</h4>
+                        <p style="color: black; margin: 0;">⛔ Cette publication a été bloquée</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                if result["moderation_labels"]:
+                    st.markdown("### 🔎 Thèmes sensibles détectés :")
+                    for theme in result["moderation_labels"]:
+                        st.markdown(f"- ⚠️ {theme}")
             else:
-                # Tout est OK => Affichage
-                if result.get("subtitles"):
-                    st.markdown("### Transcription")
-                    st.write(result["subtitles"])
-
-                if result.get("hashtags"):
-                    st.markdown("### Hashtags")
-                    st.write(", ".join(result["hashtags"]))
-
                 # Aperçu (image ou vidéo)
                 if file_type == "image":
                     st.image(file_bytes, caption="Aperçu de l'image")
                 elif file_type == "vidéo":
                     st.video(file_bytes)
+
+
+            if result.get("hashtags"):
+
+                hashtags_html = " ".join(
+                    f'<span class="hashtag">{tag}</span>' for tag in result["hashtags"]
+                )
+
+                st.markdown(
+                    f"""
+                    <style>
+                        .hashtag {{
+                            background-color: #E6F7FF; /* Bleu très clair pour le fond */
+                            color: #66B3CC; /* Bleu doux pour le texte */
+                            padding: 3px 8px; /* Réduire un peu l'espace */
+                            border-radius: 12px; /* Coins arrondis */
+                            margin: 3px;
+                            display: inline-block;
+                            font-size: 14px; /* Plus petit */
+                            font-weight: normal; /* Enlever le gras */
+                        }}
+                    </style>
+                    {hashtags_html}
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+
+
+            # Tout est OK => Affichage
+            if result.get("subtitles"):
+                with st.expander("📝 Voir la transcription", expanded=True):
+                    st.write(result["subtitles"])
 
         else:
             st.warning("⚠️ Impossible de procéder à l'analyse (AWS non accessible).")
@@ -162,6 +200,3 @@ if uploaded_file:
             elif file_type == "vidéo":
                 st.video(file_bytes)
 
-st.markdown("---")
-st.header("📊 Résultats")
-st.write("Les informations sur le contenu apparaîtront ci-dessus après l'analyse.")
